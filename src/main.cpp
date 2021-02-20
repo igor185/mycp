@@ -2,41 +2,53 @@
 // PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 
 #include <iostream>
-#include <boost/program_options.hpp>
+#include <string>
+#include <vector>
+#include "util.h"
+#include "IO.h"
+#include <fcntl.h>
+#include <unistd.h>
+#include <cstring>
 
-#include "arithmetic/arithmetic.hpp"
+struct args {
+    bool f;
+    bool r;
+    std::vector<std::string> files;
+};
+
+args process_arg(int argc, char **argv) {
+    std::string arg;
+    args args = {false, false, {}};
+    for (int i = 0; i < argc; i++) {
+        arg = argv[i];
+        if (arg == "-h" || arg == "--help") {
+//            print help
+            exit(EXIT_SUCCESS);
+        } else if (arg == "-f") {
+            args.f = true;
+        } else if(arg == "-R"){
+            args.r = true;
+        } else {
+            args.files.push_back(arg);
+        }
+    }
+    return args;
+}
 
 int main(int argc, char **argv) {
-    int variable_a, variable_b;
 
-    namespace po = boost::program_options;
+//    args args = process_arg(argc, argv);
 
-    po::options_description visible("Supported options");
-    visible.add_options()
-            ("help,h", "Print this help message.");
+    std::string file1 = "./CMakeLists.txt";
+    std::string file2 = "./new/copy.txt";
 
-    po::options_description hidden("Hidden options");
-    hidden.add_options()
-            ("a", po::value<int>(&variable_a)->default_value(0), "Variable A.")
-            ("b", po::value<int>(&variable_b)->default_value(0), "Variable B.");
+    size_t fd1 = IO::my_open(file1.c_str(), false);
+    size_t fd2 = IO::my_open(file2.c_str(), true);
 
-    po::positional_options_description p;
-    p.add("a", 1);
-    p.add("b", 1);
+    util::copy(fd1, fd2);
 
-    po::options_description all("All options");
-    all.add(visible).add(hidden);
+//    std::cout << open(file1.c_str(),  O_RDONLY) << std::endl;
+//    std::cout << strerror(errno) << " " << file1 << std::endl;
 
-    po::variables_map vm;
-    po::store(po::command_line_parser(argc, argv).options(all).positional(p).run(), vm);
-    po::notify(vm);
-
-    if (vm.count("help")) {
-        std::cout << "Usage:\n  add [a] [b]\n" << visible << std::endl;
-        return EXIT_SUCCESS;
-    }
-
-    int result = arithmetic::add(variable_a, variable_b);
-    std::cout << result << std::endl;
     return EXIT_SUCCESS;
 }
